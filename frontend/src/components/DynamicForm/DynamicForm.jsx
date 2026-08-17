@@ -74,6 +74,20 @@ function DynamicForm({ fields }) {
             ))}
           </select>
         );
+        case "checkbox":
+  return (
+    <label>
+      <input
+        type="checkbox"
+        {...register(field.name, {
+          required: field.required
+            ? `${field.label} is required`
+            : false,
+        })}
+      />
+      {field.label}
+    </label>
+  );
 
       default:
         return null;
@@ -87,17 +101,22 @@ function DynamicForm({ fields }) {
           return null;
         }
 
-        return (
-          <div key={field.name}>
-            <label>{field.label}</label>
+       return (
+  <div key={field.name}>
+    {field.type === "checkbox" ? (
+      renderField(field)
+    ) : (
+      <>
+        <label>{field.label}</label>
+        {renderField(field)}
+      </>
+    )}
 
-            {renderField(field)}
-
-            {errors[field.name] && (
-              <p>{errors[field.name].message}</p>
-            )}
-          </div>
-        );
+    {errors[field.name] && (
+      <p>{errors[field.name].message}</p>
+    )}
+  </div>
+);
       })}
 
       <button type="submit">Submit Form</button>

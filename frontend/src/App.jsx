@@ -9,7 +9,12 @@ const fields = [
     required: true,
     placeholder: "Enter your name",
   },
-
+ {
+  name: "termsAccepted",
+  label: "I confirm that the information provided is accurate",
+  type: "checkbox",
+  required: true,
+ },
   {
     name: "incidentType",
     label: "Incident Type",
