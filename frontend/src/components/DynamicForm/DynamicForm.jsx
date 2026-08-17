@@ -1,13 +1,21 @@
+import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
-function DynamicForm({ fields }) {
-  const {
-    register,
-    control,
-    handleSubmit,
-    formState: { errors },
-  } = useForm();
-
+function DynamicForm({ fields, initialValues }) {
+const {
+  register,
+  control,
+  handleSubmit,
+  reset,
+  formState: { errors },
+} = useForm({
+  defaultValues: initialValues || {},
+});
+useEffect(() => {
+  if (initialValues) {
+    reset(initialValues);
+  }
+}, [initialValues, reset]);
   const formValues = useWatch({ control });
 
   const shouldShowField = (field) => {

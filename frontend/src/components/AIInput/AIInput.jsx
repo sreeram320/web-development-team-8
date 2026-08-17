@@ -1,19 +1,29 @@
 import { useState } from "react";
+import { analyzeStory } from "../../services/aiService";
 
-function AIInput() {
+function AIInput({ onAIResult }) {
   const [story, setStory] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     if (!story.trim()) return;
 
     setIsLoading(true);
+    setError("");
 
-    // Temporary simulation until we connect the real AI backend
-    setTimeout(() => {
+    try {
+      const result = await analyzeStory(story);
+
+      console.log("AI result:", result);
+
+      onAIResult(result);
+    } catch (err) {
+      console.error("AI error:", err);
+      setError("Something went wrong while analyzing your story.");
+    } finally {
       setIsLoading(false);
-      console.log("AI processing completed for:", story);
-    }, 2000);
+    }
   };
 
   if (isLoading) {
@@ -21,6 +31,7 @@ function AIInput() {
       <section className="ai-input">
         <div className="ai-input-header">
           <span>✨</span>
+
           <div>
             <h2>Analyzing your story...</h2>
             <p>
@@ -46,6 +57,7 @@ function AIInput() {
     <section className="ai-input">
       <div className="ai-input-header">
         <span>✨</span>
+
         <div>
           <h2>Describe your incident</h2>
           <p>
@@ -65,6 +77,8 @@ function AIInput() {
       <button onClick={handleAnalyze} disabled={!story.trim()}>
         ✨ Analyze with AI
       </button>
+
+      {error && <p>{error}</p>}
     </section>
   );
 }

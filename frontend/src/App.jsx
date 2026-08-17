@@ -1,3 +1,4 @@
+import { useState } from "react";
 import AIInput from "./components/AIInput/AIInput";
 import DynamicForm from "./components/DynamicForm/DynamicForm";
 
@@ -9,12 +10,14 @@ const fields = [
     required: true,
     placeholder: "Enter your name",
   },
- {
-  name: "termsAccepted",
-  label: "I confirm that the information provided is accurate",
-  type: "checkbox",
-  required: true,
- },
+
+  {
+    name: "termsAccepted",
+    label: "I confirm that the information provided is accurate",
+    type: "checkbox",
+    required: true,
+  },
+
   {
     name: "incidentType",
     label: "Incident Type",
@@ -63,19 +66,24 @@ const fields = [
 ];
 
 function App() {
+  const [aiResult, setAIResult] = useState(null);
+
   return (
     <main>
       <h1>Forma AI</h1>
 
       <p>AI-Augmented Dynamic Form Engine</p>
 
-      <AIInput />
+      <AIInput onAIResult={setAIResult} />
 
       <hr />
 
       <h2>Incident Details</h2>
 
-      <DynamicForm fields={fields} />
+      <DynamicForm
+        fields={fields}
+        initialValues={aiResult}
+      />
     </main>
   );
 }
