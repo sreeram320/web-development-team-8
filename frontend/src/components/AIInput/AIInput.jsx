@@ -2,10 +2,45 @@ import { useState } from "react";
 
 function AIInput() {
   const [story, setStory] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleAnalyze = () => {
-    console.log("User story:", story);
+    if (!story.trim()) return;
+
+    setIsLoading(true);
+
+    // Temporary simulation until we connect the real AI backend
+    setTimeout(() => {
+      setIsLoading(false);
+      console.log("AI processing completed for:", story);
+    }, 2000);
   };
+
+  if (isLoading) {
+    return (
+      <section className="ai-input">
+        <div className="ai-input-header">
+          <span>✨</span>
+          <div>
+            <h2>Analyzing your story...</h2>
+            <p>
+              AI is extracting the relevant information from your description.
+            </p>
+          </div>
+        </div>
+
+        <div className="ai-skeleton">
+          <div className="skeleton-line skeleton-line-long"></div>
+          <div className="skeleton-line skeleton-line-medium"></div>
+          <div className="skeleton-line skeleton-line-short"></div>
+        </div>
+
+        <p className="ai-loading-text">
+          Please wait while we process your information...
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section className="ai-input">
