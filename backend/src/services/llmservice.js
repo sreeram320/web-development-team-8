@@ -5,11 +5,14 @@ const model = new ChatOllama({
 });
 function normalizeClaim(data, originalText) {
   const story = originalText.toLowerCase();
+
   let incidentType = null;
   let vehicle = null;
   let damage = null;
   let location = null;
   let date = null;
+
+  // Incident type
   if (
     story.includes("deer") ||
     story.includes("animal") ||
@@ -45,52 +48,114 @@ function normalizeClaim(data, originalText) {
     story.includes("crashed") ||
     story.includes("collision") ||
     story.includes("accident") ||
-    story.includes("hit another car")
+    story.includes("hit another car") ||
+    story.includes("hit another vehicle") ||
+    story.includes("someone hit") ||
+    story.includes("was hit") ||
+    story.includes("rear-ended") ||
+    story.includes("rear ended")
   ) {
     incidentType = "vehicle_collision";
   }
+
+  // Vehicle
   if (typeof data.vehicle === "string") {
     const possibleVehicle = data.vehicle.trim();
-    if (story.includes(possibleVehicle.toLowerCase())) {
+
+    if (
+      possibleVehicle &&
+      story.includes(possibleVehicle.toLowerCase())
+    ) {
       vehicle = possibleVehicle;
     }
   }
-  if (typeof data.damage === "string") {
-    const damageText = data.damage.toLowerCase();
-    if (damageText.includes("windshield") && story.includes("windshield")) {
-      damage = "windshield";
-    } else if (damageText.includes("bumper") && story.includes("bumper")) {
-      damage = "bumper";
-    } else if (damageText.includes("door") && story.includes("door")) {
-      damage = "door";
-    } else if (damageText.includes("hood") && story.includes("hood")) {
-      damage = "hood";
-    } else if (damageText.includes("mirror") && story.includes("mirror")) {
-      damage = "mirror";
+
+  // Damage
+  const damageKeywords = [
+    { keyword: "windshield", value: "windshield" },
+    { keyword: "bumper", value: "bumper" },
+    { keyword: "driver door", value: "driver_door" },
+    { keyword: "passenger door", value: "passenger_door" },
+    { keyword: "door", value: "door" },
+    { keyword: "hood", value: "hood" },
+    { keyword: "mirror", value: "mirror" },
+  ];
+
+  for (const item of damageKeywords) {
+    if (story.includes(item.keyword)) {
+      damage = item.value;
+      break;
     }
   }
-  if (typeof data.location === "string") {
+
+  // Fallback to LLM damage only if it appears in the story
+  if (!damage && typeof data.damage === "string") {
+    const possibleDamage = data.damage.trim().toLowerCase();
+
+    for (const item of damageKeywords) {
+      if (
+        possibleDamage.includes(item.keyword) &&
+        story.includes(item.keyword)
+      ) {
+        damage = item.value;
+        break;
+      }
+    }
+  }
+
+  // Location
+  const knownLocations = [
+    "parking lot",
+    "highway",
+    "road",
+    "street",
+    "intersection",
+    "i-95",
+  ];
+
+  for (const knownLocation of knownLocations) {
+    if (story.includes(knownLocation)) {
+      location = knownLocation;
+      break;
+    }
+  }
+
+  // Use LLM location only if it is not actually a damage field
+  if (!location && typeof data.location === "string") {
     const possibleLocation = data.location.trim();
-    if (story.includes(possibleLocation.toLowerCase())) {
+    const locationLower = possibleLocation.toLowerCase();
+
+    const isDamageWord = damageKeywords.some(
+      (item) => locationLower === item.keyword
+    );
+
+    if (
+      possibleLocation &&
+      !isDamageWord &&
+      story.includes(locationLower)
+    ) {
       location = possibleLocation;
     }
   }
-  if (story.includes("parking lot")) {
-    location = "parking lot";
-  }
-  if (typeof data.date === "string") {
-    const possibleDate = data.date.trim();
-    if (story.includes(possibleDate.toLowerCase())) {
-      date = possibleDate;
-    }
-  }
+
+  // Date
   if (story.includes("yesterday")) {
     date = "yesterday";
   } else if (story.includes("today")) {
     date = "today";
   } else if (story.includes("last night")) {
     date = "last night";
+  } else if (typeof data.date === "string") {
+    const possibleDate = data.date.trim();
+
+    if (
+      possibleDate &&
+      story.includes(possibleDate.toLowerCase())
+    ) {
+      date = possibleDate;
+    }
   }
+
   return {
     incidentType,
     vehicle,
