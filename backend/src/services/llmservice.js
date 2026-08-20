@@ -58,28 +58,48 @@ function normalizeClaim(data, originalText) {
     incidentType = "vehicle_collision";
   }
 
-  // Vehicle
-  if (typeof data.vehicle === "string") {
-    const possibleVehicle = data.vehicle.trim();
+ // Vehicle
+if (typeof data.vehicle === "string") {
+  const possibleVehicle = data.vehicle.trim();
 
-    if (
-      possibleVehicle &&
-      story.includes(possibleVehicle.toLowerCase())
-    ) {
-      vehicle = possibleVehicle;
-    }
+  if (
+    possibleVehicle &&
+    story.includes(possibleVehicle.toLowerCase())
+  ) {
+    vehicle = possibleVehicle;
   }
+}
+
+// Generic vehicle fallback
+if (!vehicle) {
+  if (/\bcar\b/i.test(story)) {
+    vehicle = "car";
+  } else if (/\bvehicle\b/i.test(story)) {
+    vehicle = "vehicle";
+  } else if (/\btruck\b/i.test(story)) {
+    vehicle = "truck";
+  } else if (/\bsuv\b/i.test(story)) {
+    vehicle = "SUV";
+  }
+}
+
+
 
   // Damage
   const damageKeywords = [
-    { keyword: "windshield", value: "windshield" },
-    { keyword: "bumper", value: "bumper" },
-    { keyword: "driver door", value: "driver_door" },
-    { keyword: "passenger door", value: "passenger_door" },
-    { keyword: "door", value: "door" },
-    { keyword: "hood", value: "hood" },
-    { keyword: "mirror", value: "mirror" },
-  ];
+  { keyword: "windshield", value: "windshield" },
+  { keyword: "bumper", value: "bumper" },
+  { keyword: "driver door", value: "driver_door" },
+  { keyword: "passenger door", value: "passenger_door" },
+  { keyword: "door", value: "door" },
+  { keyword: "hood", value: "hood" },
+  { keyword: "mirror", value: "mirror" },
+  { keyword: "roof", value: "roof" },
+  { keyword: "tire", value: "tire" },
+  { keyword: "wheel", value: "wheel" },
+  { keyword: "headlight", value: "headlight" },
+  { keyword: "taillight", value: "taillight" },
+];
 
   for (const item of damageKeywords) {
     if (story.includes(item.keyword)) {
@@ -104,6 +124,7 @@ function normalizeClaim(data, originalText) {
   }
 
   // Location
+    // Location
   const knownLocations = [
     "parking lot",
     "highway",
@@ -111,6 +132,7 @@ function normalizeClaim(data, originalText) {
     "street",
     "intersection",
     "i-95",
+    "outside my house",
   ];
 
   for (const knownLocation of knownLocations) {
@@ -129,9 +151,21 @@ function normalizeClaim(data, originalText) {
       (item) => locationLower === item.keyword
     );
 
+    const isEventWord = [
+      "storm",
+      "hurricane",
+      "tornado",
+      "hail",
+      "flood",
+      "fire",
+      "accident",
+      "collision",
+    ].includes(locationLower);
+
     if (
       possibleLocation &&
       !isDamageWord &&
+      !isEventWord &&
       story.includes(locationLower)
     ) {
       location = possibleLocation;
@@ -163,6 +197,7 @@ function normalizeClaim(data, originalText) {
     location,
     date,
   };
+}
 }
 async function extractClaim(text) {
   const prompt = `
