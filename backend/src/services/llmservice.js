@@ -1,4 +1,4 @@
-const { ChatOllama } = require("@langchain/ollama");
+﻿const { ChatOllama } = require("@langchain/ollama");
 
 const model = new ChatOllama({
   model: "qwen2.5:0.5b",
@@ -52,7 +52,12 @@ function normalizeClaim(data, originalText) {
     story.includes("crashed") ||
     story.includes("collision") ||
     story.includes("accident") ||
-    story.includes("hit another car")
+    story.includes("hit another car") ||
+    story.includes("hit another vehicle") ||
+    story.includes("someone hit") ||
+    story.includes("was hit") ||
+    story.includes("rear-ended") ||
+    story.includes("rear ended")
   ) {
     incidentType = "vehicle_collision";
   }
@@ -64,10 +69,24 @@ function normalizeClaim(data, originalText) {
   if (typeof data.vehicle === "string") {
     const possibleVehicle = data.vehicle.trim();
 
-    // Only accept vehicle information if it appears
-    // in the original story.
-    if (story.includes(possibleVehicle.toLowerCase())) {
+    if (
+      possibleVehicle &&
+      story.includes(possibleVehicle.toLowerCase())
+    ) {
       vehicle = possibleVehicle;
+    }
+  }
+
+  // Generic vehicle fallback
+  if (!vehicle) {
+    if (/\bcar\b/i.test(story)) {
+      vehicle = "car";
+    } else if (/\bvehicle\b/i.test(story)) {
+      vehicle = "vehicle";
+    } else if (/\btruck\b/i.test(story)) {
+      vehicle = "truck";
+    } else if (/\bsuv\b/i.test(story)) {
+      vehicle = "SUV";
     }
   }
 
@@ -75,34 +94,40 @@ function normalizeClaim(data, originalText) {
   // 3. DAMAGE
   // -----------------------------
 
-  if (typeof data.damage === "string") {
-    const damageText = data.damage.toLowerCase();
+  const damageKeywords = [
+    { keyword: "windshield", value: "windshield" },
+    { keyword: "bumper", value: "bumper" },
+    { keyword: "driver door", value: "driver_door" },
+    { keyword: "passenger door", value: "passenger_door" },
+    { keyword: "door", value: "door" },
+    { keyword: "hood", value: "hood" },
+    { keyword: "mirror", value: "mirror" },
+    { keyword: "roof", value: "roof" },
+    { keyword: "tire", value: "tire" },
+    { keyword: "wheel", value: "wheel" },
+    { keyword: "headlight", value: "headlight" },
+    { keyword: "taillight", value: "taillight" },
+  ];
 
-    if (
-      damageText.includes("windshield") &&
-      story.includes("windshield")
-    ) {
-      damage = "windshield";
-    } else if (
-      damageText.includes("bumper") &&
-      story.includes("bumper")
-    ) {
-      damage = "bumper";
-    } else if (
-      damageText.includes("door") &&
-      story.includes("door")
-    ) {
-      damage = "door";
-    } else if (
-      damageText.includes("hood") &&
-      story.includes("hood")
-    ) {
-      damage = "hood";
-    } else if (
-      damageText.includes("mirror") &&
-      story.includes("mirror")
-    ) {
-      damage = "mirror";
+  for (const item of damageKeywords) {
+    if (story.includes(item.keyword)) {
+      damage = item.value;
+      break;
+    }
+  }
+
+  // Fallback to LLM damage only if it appears in the story
+  if (!damage && typeof data.damage === "string") {
+    const possibleDamage = data.damage.trim().toLowerCase();
+
+    for (const item of damageKeywords) {
+      if (
+        possibleDamage.includes(item.keyword) &&
+        story.includes(item.keyword)
+      ) {
+        damage = item.value;
+        break;
+      }
     }
   }
 
@@ -110,30 +135,56 @@ function normalizeClaim(data, originalText) {
   // 4. LOCATION
   // -----------------------------
 
-  if (typeof data.location === "string") {
-    const possibleLocation = data.location.trim();
+  const knownLocations = [
+    "parking lot",
+    "highway",
+    "road",
+    "street",
+    "intersection",
+    "i-95",
+    "outside my house",
+  ];
 
-    if (story.includes(possibleLocation.toLowerCase())) {
-      location = possibleLocation;
+  for (const knownLocation of knownLocations) {
+    if (story.includes(knownLocation)) {
+      location = knownLocation;
+      break;
     }
   }
 
-  // Special case: parking lot
-  if (story.includes("parking lot")) {
-    location = "parking lot";
+  // Use LLM location only if it is actually a location
+  if (!location && typeof data.location === "string") {
+    const possibleLocation = data.location.trim();
+    const locationLower = possibleLocation.toLowerCase();
+
+    const isDamageWord = damageKeywords.some(
+      (item) => locationLower === item.keyword
+    );
+
+    const isEventWord = [
+      "storm",
+      "hurricane",
+      "tornado",
+      "hail",
+      "flood",
+      "fire",
+      "accident",
+      "collision",
+    ].includes(locationLower);
+
+    if (
+      possibleLocation &&
+      !isDamageWord &&
+      !isEventWord &&
+      story.includes(locationLower)
+    ) {
+      location = possibleLocation;
+    }
   }
 
   // -----------------------------
   // 5. DATE
   // -----------------------------
-
-  if (typeof data.date === "string") {
-    const possibleDate = data.date.trim();
-
-    if (story.includes(possibleDate.toLowerCase())) {
-      date = possibleDate;
-    }
-  }
 
   if (story.includes("yesterday")) {
     date = "yesterday";
@@ -141,6 +192,15 @@ function normalizeClaim(data, originalText) {
     date = "today";
   } else if (story.includes("last night")) {
     date = "last night";
+  } else if (typeof data.date === "string") {
+    const possibleDate = data.date.trim();
+
+    if (
+      possibleDate &&
+      story.includes(possibleDate.toLowerCase())
+    ) {
+      date = possibleDate;
+    }
   }
 
   return {
@@ -148,7 +208,7 @@ function normalizeClaim(data, originalText) {
     vehicle,
     damage,
     location,
-    date
+    date,
   };
 }
 
